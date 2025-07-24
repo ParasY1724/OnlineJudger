@@ -3,6 +3,7 @@
 This repository contains the source code for a highly scalable, fault-tolerant, and serverless online judge system built on AWS. It is designed to concurrently process a massive number of code submissions using a decoupled, microservices-based architecture.
 
 ## System Design
+![architecture diagram](./images/architecture.png)
 
 ## Key Features
 
@@ -15,7 +16,7 @@ This repository contains the source code for a highly scalable, fault-tolerant, 
 -----
 ## Implementation
 
-For detailed implementation instructions, please refer to the [Implementation Docs](./path/to/implementation/README.md).
+For detailed implementation instructions, please refer to the [Implementation Docs](./Implementation.md).
 
 -----
 
