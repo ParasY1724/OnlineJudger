@@ -16,6 +16,7 @@ This repository contains the source code for a highly scalable, fault-tolerant, 
 ## Implementation
 
 For detailed implementation instructions, please refer to the [Implementation Docs](./path/to/implementation/README.md).
+
 -----
 
 ### Serverless-First Architecture
