@@ -13,7 +13,10 @@ This repository contains the source code for a highly scalable, fault-tolerant, 
   * **Asynchronous Notifications**: Employs webhooks (callbacks) to notify users of results without polling.
   * **Cost-Effective**: A serverless-first design means you only pay for the exact compute time used.
 -----
+## Implementation
 
+For detailed implementation instructions, please refer to the [Implementation Docs](./path/to/implementation/README.md).
+-----
 
 ### Serverless-First Architecture
 
