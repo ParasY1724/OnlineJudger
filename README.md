@@ -14,6 +14,17 @@ This repository contains the source code for a highly scalable, fault-tolerant, 
   * **Cost-Effective**: A serverless-first design means you only pay for the exact compute time used.
 -----
 
+
+### Serverless-First Architecture
+
+This project minimizes operational overhead by avoiding manually managed servers.
+
+  * **AWS Lambda**: Used for all event-driven logic, such as submission intake, dispatching tasks, and sending callbacks.
+  * **AWS Fargate**: Provides serverless compute for containers, so you can run the judge without provisioning or managing EC2 instances.
+  * **Amazon DynamoDB & SQS**: Fully managed, auto-scaling services for database and messaging, eliminating the need for maintenance.
+
+-----
+
 ### Horizontal Scalability
 
 The system is designed to scale horizontally at every stage:
@@ -31,15 +42,5 @@ Resilience is built into the architecture:
   * **Decoupled Services**: If the judging mechanism (Fargate) or the notification service fails, submissions are safely held in the SQS queues until the downstream services recover.
   * **Isolated Execution**: A crash or error in one judging task has no impact on any other concurrent tasks.
   * **Managed Services**: By leveraging managed AWS services like SQS, DynamoDB, and Fargate, we delegate the responsibility of maintaining high availability to AWS.
-
------
-
-### Serverless-First Architecture
-
-This project minimizes operational overhead by avoiding manually managed servers.
-
-  * **AWS Lambda**: Used for all event-driven logic, such as submission intake, dispatching tasks, and sending callbacks.
-  * **AWS Fargate**: Provides serverless compute for containers, so you can run the judge without provisioning or managing EC2 instances.
-  * **Amazon DynamoDB & SQS**: Fully managed, auto-scaling services for database and messaging, eliminating the need for maintenance.
 
 -----
