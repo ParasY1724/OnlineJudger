@@ -181,3 +181,65 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on  = [aws_api_gateway_integration_response.sqs_integration_response]
   stage_name  = "v1"
 }
+
+
+
+# Callback Lambda (Processes Result Queue)
+
+data "archive_file" "callback_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/callback"
+  output_path = "${path.module}/callback.zip"
+}
+
+resource "aws_iam_role" "callback_lambda_role" {
+  name = "CodeJudgeCallbackRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "callback_basic_logs" {
+  role       = aws_iam_role.callback_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+resource "aws_iam_role_policy" "callback_sqs_policy" {
+  role = aws_iam_role.callback_lambda_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+      ]
+      Effect   = "Allow"
+      Resource = aws_sqs_queue.result_queue.arn
+    }]
+  })
+}
+
+resource "aws_lambda_function" "callback_engine" {
+  function_name    = "CodeJudgeCallbackEngine"
+  role             = aws_iam_role.callback_lambda_role.arn
+  handler          = "callback.handler"
+  runtime          = "python3.10" # Standard Python runtime
+  
+  # Use the zipped file created by Terraform
+  filename         = data.archive_file.callback_zip.output_path
+  source_code_hash = data.archive_file.callback_zip.output_base64sha256
+
+  timeout          = 10
+  memory_size      = 128
+
+}
+resource "aws_lambda_event_source_mapping" "callback_sqs_trigger" {
+  event_source_arn = aws_sqs_queue.result_queue.arn
+  function_name    = aws_lambda_function.callback_engine.arn
+  batch_size       = 10 # It can process up to 10 results in a single Lambda execution to save costs
+}
