@@ -143,7 +143,7 @@ def handler(event, context):
         table.update_item(
             Key={'submissionId': sub_id},
             UpdateExpression='SET #st = :v1, #op = :v2',
-            ExpressionAttributeNames={'#st': 'status', '#op': 'output'},
+            ExpressionAttributeNames={'#st': 'status', '#op': 'result'},
             ExpressionAttributeValues={':v1': verdict, ':v2': result_payload["output"]}
         )
         
