@@ -47,3 +47,23 @@ resource "aws_security_group" "lambda_sg" {
   name = "codejudge-lambda-sg"
   vpc_id = aws_vpc.isolated_vpc.id
 }
+
+data "aws_region" "current" {}
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id       = aws_vpc.isolated_vpc.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
+}
+
+resource "aws_iam_role" "lambda_exec_role" {
+  name = "CodeJudgeLambdaExecRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
+  })
+}
