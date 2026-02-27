@@ -76,9 +76,12 @@ Use the API Gateway URL provided by the Terraform output:
 curl -X POST https://[YOUR_API_ID].execute-api.us-east-1.amazonaws.com/v1/submit \
   -H "Content-Type: application/json" \
   -d '{
-    "submissionId": "test-001",
-    "language": "cpp",
-    "sourceCode": "#include <iostream>\n int main() { std::cout << \"Hello CodeKai\"; return 0; }",
+    "submissionId": "1",
+    "language": "python",
+    "sourceCode": "print(\"Hello\")",
+    "expected_output": "Hello",
+    "timeout": 2,               # Seconds
+    "memoryLimit": 256,           #MB
     "callback_url": ""
   }'
 
