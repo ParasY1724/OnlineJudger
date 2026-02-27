@@ -81,7 +81,6 @@ resource "aws_lambda_function" "judge_engine" {
 
   memory_size = 256
   timeout     = 10
-  reserved_concurrent_executions = 5
 }
 
 
