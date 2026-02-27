@@ -67,3 +67,23 @@ resource "aws_iam_role" "lambda_exec_role" {
     }]
   })
 }
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_lambda_function" "judge_engine" {
+  function_name = "CodeJudgeEngine"
+  role          = aws_iam_role.lambda_exec_role.arn
+  package_type  = "Image"
+
+  image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-1.amazonaws.com/code-judge-lambda:latest"
+
+  memory_size = 256
+  timeout     = 10
+}
+
+
+resource "aws_lambda_event_source_mapping" "sqs_trigger" {
+  event_source_arn = aws_sqs_queue.submission_queue.arn
+  function_name    = aws_lambda_function.judge_engine.arn
+  batch_size       = 1
+}
