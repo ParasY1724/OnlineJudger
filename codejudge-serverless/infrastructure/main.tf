@@ -68,6 +68,8 @@ resource "aws_iam_role" "lambda_exec_role" {
   })
 }
 
+
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_lambda_function" "judge_engine" {
@@ -79,6 +81,7 @@ resource "aws_lambda_function" "judge_engine" {
 
   memory_size = 256
   timeout     = 10
+  reserved_concurrent_executions = 5
 }
 
 
@@ -86,4 +89,96 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   event_source_arn = aws_sqs_queue.submission_queue.arn
   function_name    = aws_lambda_function.judge_engine.arn
   batch_size       = 1
+}
+
+resource "aws_iam_role_policy" "lambda_sqs_dynamo_policy" {
+  role = aws_iam_role.lambda_exec_role.id
+  policy = jsonencode({
+    Version = "2012-10-17", Statement = [
+      { Action = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"], Effect = "Allow", Resource = aws_sqs_queue.submission_queue.arn },
+      { Action = "sqs:SendMessage", Effect = "Allow", Resource = aws_sqs_queue.result_queue.arn },
+      { Action = ["dynamodb:UpdateItem", "dynamodb:PutItem", "dynamodb:GetItem"], Effect = "Allow", Resource = aws_dynamodb_table.submissions.arn }
+    ]
+  })
+}
+
+
+resource "aws_iam_role" "apigw_sqs_role" {
+  name = "CodeJudgeApiGatewayRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "apigateway.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "apigw_sqs_policy" {
+  role = aws_iam_role.apigw_sqs_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sqs:SendMessage"
+      Resource = aws_sqs_queue.submission_queue.arn
+    }]
+  })
+}
+
+resource "aws_api_gateway_rest_api" "judge_api" { name = "CodeJudgeAPI" }
+
+resource "aws_api_gateway_resource" "submit" {
+  rest_api_id = aws_api_gateway_rest_api.judge_api.id
+  parent_id   = aws_api_gateway_rest_api.judge_api.root_resource_id
+  path_part   = "submit"
+}
+
+resource "aws_api_gateway_method" "submit_post" {
+  rest_api_id   = aws_api_gateway_rest_api.judge_api.id
+  resource_id   = aws_api_gateway_resource.submit.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "sqs_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.judge_api.id
+  resource_id             = aws_api_gateway_resource.submit.id
+  http_method             = aws_api_gateway_method.submit_post.http_method
+  type                    = "AWS"
+  integration_http_method = "POST"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:sqs:path/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.submission_queue.name}"
+  credentials             = aws_iam_role.apigw_sqs_role.arn
+  request_parameters      = { "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'" }
+  request_templates       = { "application/json" = "Action=SendMessage&MessageBody=$util.urlEncode($input.body)" }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_api_gateway_method_response" "response_200" {
+  rest_api_id = aws_api_gateway_rest_api.judge_api.id
+  resource_id = aws_api_gateway_resource.submit.id
+  http_method = aws_api_gateway_method.submit_post.http_method
+  status_code = "200"
+}
+
+resource "aws_api_gateway_integration_response" "sqs_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.judge_api.id
+  resource_id = aws_api_gateway_resource.submit.id
+  http_method = aws_api_gateway_method.submit_post.http_method
+  status_code = aws_api_gateway_method_response.response_200.status_code
+  response_templates = { "application/json" = "{\"message\": \"Queued\", \"id\": \"$input.path('$.SendMessageResponse.SendMessageResult.MessageId')\"}" }
+  depends_on = [aws_api_gateway_integration.sqs_integration]
+}
+
+resource "aws_api_gateway_deployment" "api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.judge_api.id
+  depends_on  = [aws_api_gateway_integration_response.sqs_integration_response]
+  stage_name  = "v1"
 }
