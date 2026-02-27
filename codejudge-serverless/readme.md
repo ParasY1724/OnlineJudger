@@ -9,6 +9,7 @@ A highly scalable, 100% serverless online judge. This architecture leverages AWS
 * **Native Kernel-Level Security:** Bypasses Fargate limitations by using AWS's own Firecracker microVMs as the ultimate security boundary. Timeouts (TLE) and Memory Limits (MLE) are enforced natively by AWS.
 * **1:1 Execution Isolation:** SQS batch size is strictly set to `1`, guaranteeing each Lambda microVM handles only one user's code at a time to completely prevent memory cross-contamination.
 * **Multi-Language Runtimes:** Native support for compiling and executing **C++, Python, Java, Node.js, and Go** within a single, optimized Lambda Docker image.
+* **Comprehensive Verdict Engine**: Supports granular verdicts including **AC** (Accepted), **WA** (Wrong Answer), **TLE** (Time Limit Exceeded), **MLE** (Memory Limit Exceeded), **RTE** (Runtime Error), and **CE** (Compilation Error) with dynamic time and memory limits configurable per request body.
 * **Zero Trust Execution:** Automatically destroys `/tmp` workspaces after every run and strips AWS IAM environment variables before executing user code to prevent privilege escalation.
 
 ### 💰 Cost Efficiency
